@@ -28,6 +28,7 @@ type Coordinator struct {
 func (c *Coordinator) ApplyforTasks(args *ApplyforTaskArgs, reply *ReplyTaskArgs) error {
 	// if worker have done a task
 	if args.LastTaskId != -1 {
+		// write tmp files from workers
 		c.lock.Lock()
 		taskId := CreateTaskId(args.LastTaskType, args.LastTaskId)
 		// if the worker is the one we specified, then it is ok
@@ -152,9 +153,11 @@ func (c *Coordinator) server() {
 	rpc.HandleHTTP()
 	sockname := coordinatorSock()
 	os.Remove(sockname)
-	l, e := net.Listen("unix", sockname)
+	// l, e := net.Listen("unix", sockname)
 	// listen on distributed system
-	// l, e := net.Listen("tcp", "46.239.124.5:8082")
+	log.Printf("Waiting...")
+	l, e := net.Listen("tcp", "0.0.0.0:8082")
+	log.Printf("Connection received: %v", l)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
