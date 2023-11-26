@@ -2,6 +2,8 @@ package mr
 
 import (
 	"fmt"
+	"github.com/google/uuid"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -37,17 +39,56 @@ func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
 
 	// Your worker implementation here.
-	pid := os.Getpid()
-	log.Printf("Worker %d is working...\n", pid)
+	//pid := os.Getpid()
+	pid := uuid.New().String()
+	log.Printf("Worker %s is working...\n", pid)
 
 	lastTaskId := -1
 	lastTaskType := ""
+	num_reduce := 0
+
 	for {
 		args := ApplyforTaskArgs{
 			WorkerId:     pid,
 			LastTaskId:   lastTaskId,
 			LastTaskType: lastTaskType,
+			Data:         make(map[int][]byte),
 		}
+		// for map task, if mr-
+		// for reduce task, if mr-nmap-taskid files exist, then args.Data should be assigned.
+		if lastTaskType == "map" {
+			for i := 0; i < num_reduce; i++ {
+				//oname := "mr-" + strconv.Itoa(id) + "-" + strconv.Itoa(i)
+				oname := tmpMapOutFile(pid, lastTaskId, i)
+				//ofile, _ := os.Create(oname)
+				_, err := os.Stat(oname)
+				if err == nil {
+					open, err := os.Open(oname)
+					if err != nil {
+						log.Fatalf("Oname open error: %v", err)
+					}
+					content, err := io.ReadAll(open)
+					args.Data[i] = content
+				} else {
+					log.Fatalf("The files do not exist!")
+				}
+
+			}
+		} else if lastTaskType == "reduce" {
+			lastOutputFile := tmpReduceOutFile(pid, lastTaskId)
+			_, err := os.Stat(lastOutputFile)
+			if err == nil {
+				open, err := os.Open(lastOutputFile)
+				if err != nil {
+					log.Fatalf("Oname open error: %v", err)
+				}
+				content, err := io.ReadAll(open)
+				args.Data[0] = content
+			} else {
+				log.Fatalf("The files do not exist!")
+			}
+		}
+
 		reply := ReplyTaskArgs{}
 		call("Coordinator.ApplyforTasks", &args, &reply)
 		if reply.Type == "map" {
@@ -59,6 +100,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		}
 		lastTaskId = reply.TaskId
 		lastTaskType = reply.Type
+		num_reduce = reply.NReduce
 	}
 	log.Printf("Worker %d is done\n", pid)
 	// uncomment to send the Example RPC to the coordinator.
@@ -66,7 +108,7 @@ func Worker(mapf func(string, string) []KeyValue,
 
 }
 
-func HandleMapTask(id int, taskId int, fileName string, fileData []byte, nReduce int, mapf func(string, string) []KeyValue) {
+func HandleMapTask(id string, taskId int, fileName string, fileData []byte, nReduce int, mapf func(string, string) []KeyValue) {
 	//file, err := os.Open(fileName)
 	//if err != nil {
 	//	log.Printf("File open error: %v", err)
@@ -96,7 +138,7 @@ func HandleMapTask(id int, taskId int, fileName string, fileData []byte, nReduce
 
 }
 
-func HandleReduceTask(id int, taskId int, fileData map[int][]byte, nMap int, reducef func(string, []string) string) {
+func HandleReduceTask(id string, taskId int, fileData map[int][]byte, nMap int, reducef func(string, []string) string) {
 	var lines []string
 	//var file *os.File
 	//var err error
@@ -188,10 +230,10 @@ func CallExample() {
 // usually returns true.
 // returns false if something goes wrong.
 func call(rpcname string, args interface{}, reply interface{}) bool {
-	sockname := coordinatorSock()
-	c, err := rpc.DialHTTP("unix", sockname)
+	// sockname := coordinatorSock()
+	// c, err := rpc.DialHTTP("unix", sockname)
 	// dial different server
-	// c, err := rpc.DialHTTP("tcp", "46.239.124.5:8082")
+	c, err := rpc.DialHTTP("tcp", "52.205.242.42:8082")
 	if err != nil {
 		log.Fatal("dialing:", err)
 	}
