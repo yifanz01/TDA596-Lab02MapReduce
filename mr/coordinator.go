@@ -2,6 +2,7 @@ package mr
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"strconv"
@@ -76,6 +77,40 @@ func (c *Coordinator) ApplyforTasks(args *ApplyforTaskArgs, reply *ReplyTaskArgs
 	reply.FileName = task.FileName
 	reply.NMap = c.nMap
 	reply.NReduce = c.nReduce
+	reply.Data = make(map[int][]byte)
+
+	var file *os.File
+	var err error
+	var content []byte
+	if task.Type == "map" {
+		file, err = os.Open(task.FileName)
+		if err != nil {
+			log.Printf("File open error: %v", err)
+		}
+		defer file.Close()
+		content, err = io.ReadAll(file)
+		if err != nil {
+			log.Printf("File read error: %v", err)
+		}
+		reply.Data[0] = content
+		file.Close()
+	} else if task.Type == "reduce" {
+		for i := 0; i < reply.NMap; i++ {
+			iname := "mr-" + strconv.Itoa(i) + "-" + strconv.Itoa(task.Id)
+			file, err = os.Open(iname)
+			if err != nil {
+				log.Fatalf("The file %s cannot be opened!\n", err)
+			}
+			content, err = io.ReadAll(file)
+			if err != nil {
+				log.Fatalf("The file %s cannot be read!\n", err)
+			}
+			// lines = append(lines, strings.Split(string(content), "\n")...)
+			reply.Data[i] = content
+			file.Close()
+		}
+	}
+
 	c.lock.Unlock()
 
 	return nil
@@ -115,10 +150,11 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 func (c *Coordinator) server() {
 	rpc.Register(c)
 	rpc.HandleHTTP()
-	//l, e := net.Listen("tcp", ":1234")
 	sockname := coordinatorSock()
 	os.Remove(sockname)
 	l, e := net.Listen("unix", sockname)
+	// listen on distributed system
+	// l, e := net.Listen("tcp", "46.239.124.5:8082")
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}

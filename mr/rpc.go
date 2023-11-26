@@ -32,6 +32,7 @@ type ReplyTaskArgs struct {
 	FileName string
 	NReduce  int
 	NMap     int
+	Data     map[int][]byte
 }
 
 type ApplyforTaskArgs struct {

@@ -2,10 +2,8 @@ package mr
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 )
 import "log"
@@ -53,9 +51,9 @@ func Worker(mapf func(string, string) []KeyValue,
 		reply := ReplyTaskArgs{}
 		call("Coordinator.ApplyforTasks", &args, &reply)
 		if reply.Type == "map" {
-			HandleMapTask(pid, reply.TaskId, reply.FileName, reply.NReduce, mapf)
+			HandleMapTask(pid, reply.TaskId, reply.FileName, reply.Data[0], reply.NReduce, mapf)
 		} else if reply.Type == "reduce" {
-			HandleReduceTask(pid, reply.TaskId, reply.NMap, reducef)
+			HandleReduceTask(pid, reply.TaskId, reply.Data, reply.NMap, reducef)
 		} else if reply.Type == "ok" {
 			break
 		}
@@ -68,17 +66,17 @@ func Worker(mapf func(string, string) []KeyValue,
 
 }
 
-func HandleMapTask(id int, taskId int, fileName string, nReduce int, mapf func(string, string) []KeyValue) {
-	file, err := os.Open(fileName)
-	if err != nil {
-		log.Printf("File open error: %v", err)
-	}
-	defer file.Close()
-	content, err := io.ReadAll(file)
-	if err != nil {
-		log.Printf("File read error: %v", err)
-	}
-	kva := mapf(fileName, string(content))
+func HandleMapTask(id int, taskId int, fileName string, fileData []byte, nReduce int, mapf func(string, string) []KeyValue) {
+	//file, err := os.Open(fileName)
+	//if err != nil {
+	//	log.Printf("File open error: %v", err)
+	//}
+	//defer file.Close()
+	//content, err := io.ReadAll(file)
+	//if err != nil {
+	//	log.Printf("File read error: %v", err)
+	//}
+	kva := mapf(fileName, string(fileData))
 	hashedKva := make(map[int][]KeyValue)
 	for _, kv := range kva {
 		hash := ihash(kv.Key) % nReduce
@@ -98,23 +96,26 @@ func HandleMapTask(id int, taskId int, fileName string, nReduce int, mapf func(s
 
 }
 
-func HandleReduceTask(id int, taskId int, nMap int, reducef func(string, []string) string) {
+func HandleReduceTask(id int, taskId int, fileData map[int][]byte, nMap int, reducef func(string, []string) string) {
 	var lines []string
-	var file *os.File
-	var err error
+	//var file *os.File
+	//var err error
+	//for i := 0; i < nMap; i++ {
+	//	iname := "mr-" + strconv.Itoa(i) + "-" + strconv.Itoa(taskId)
+	//	file, err = os.Open(iname)
+	//	if err != nil {
+	//		log.Fatalf("The file %s cannot be opened!\n", err)
+	//	}
+	//	content, err := io.ReadAll(file)
+	//	if err != nil {
+	//		log.Fatalf("The file %s cannot be read!\n", err)
+	//	}
+	//	lines = append(lines, strings.Split(string(content), "\n")...)
+	//}
+	//file.Close()
 	for i := 0; i < nMap; i++ {
-		iname := "mr-" + strconv.Itoa(i) + "-" + strconv.Itoa(taskId)
-		file, err = os.Open(iname)
-		if err != nil {
-			log.Fatalf("The file %s cannot be opened!\n", err)
-		}
-		content, err := io.ReadAll(file)
-		if err != nil {
-			log.Fatalf("The file %s cannot be read!\n", err)
-		}
-		lines = append(lines, strings.Split(string(content), "\n")...)
+		lines = append(lines, strings.Split(string(fileData[i]), "\n")...)
 	}
-	file.Close()
 
 	var kv []KeyValue
 
@@ -187,9 +188,10 @@ func CallExample() {
 // usually returns true.
 // returns false if something goes wrong.
 func call(rpcname string, args interface{}, reply interface{}) bool {
-	// c, err := rpc.DialHTTP("tcp", "127.0.0.1"+":1234")
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
+	// dial different server
+	// c, err := rpc.DialHTTP("tcp", "46.239.124.5:8082")
 	if err != nil {
 		log.Fatal("dialing:", err)
 	}
