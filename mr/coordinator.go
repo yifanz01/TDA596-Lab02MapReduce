@@ -27,13 +27,37 @@ type Coordinator struct {
 // Your code here -- RPC handlers for the worker to call.
 func (c *Coordinator) ApplyforTasks(args *ApplyforTaskArgs, reply *ReplyTaskArgs) error {
 	// if worker have done a task
+
 	if args.LastTaskId != -1 {
 		c.lock.Lock()
+
+		if args.LastTaskType == "map" {
+			for i := 0; i < c.nReduce; i++ {
+				//oname := "mr-" + strconv.Itoa(id) + "-" + strconv.Itoa(i)
+				oname := tmpMapOutFile(args.WorkerId, args.LastTaskId, i)
+				//ofile, _ := os.Create(oname)
+				err := os.WriteFile(oname, args.Data[i], 0666)
+				if err != nil {
+					// handle error
+				}
+				//ofile.Close()
+			}
+		} else if args.LastTaskType == "reduce" {
+			oname := tmpReduceOutFile(args.WorkerId, args.LastTaskId)
+			//ofile, _ := os.Create(oname)
+			err := os.WriteFile(oname, args.Data[0], 0666)
+			if err != nil {
+				// handle error
+			}
+			//ofile.Close()
+		}
+
 		taskId := CreateTaskId(args.LastTaskType, args.LastTaskId)
 		// if the worker is the one we specified, then it is ok
 		if task, ok := c.TaskList[taskId]; ok && task.WorkerId == args.WorkerId {
 			log.Printf("Worker: %d  has done task: %s %d ", args.WorkerId, args.LastTaskType, args.LastTaskId)
 			if args.LastTaskType == "map" {
+
 				for i := 0; i < c.nReduce; i++ {
 					err := os.Rename(tmpMapOutFile(args.WorkerId, args.LastTaskId, i), finalMapOutFile(args.LastTaskId, i))
 					if err != nil {
@@ -152,9 +176,9 @@ func (c *Coordinator) server() {
 	rpc.HandleHTTP()
 	sockname := coordinatorSock()
 	os.Remove(sockname)
-	l, e := net.Listen("unix", sockname)
+	//l, e := net.Listen("unix", sockname)
 	// listen on distributed system
-	// l, e := net.Listen("tcp", "46.239.124.5:8082")
+	l, e := net.Listen("tcp", "0.0.0.0:8082")
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
