@@ -149,7 +149,7 @@ func (c *Coordinator) SwitchStage() {
 			task := Task{
 				Id:       i,
 				Type:     "reduce",
-				WorkerId: -1,
+				WorkerId: "-1",
 			}
 			c.TaskList[CreateTaskId(task.Type, task.Id)] = task
 			c.TodoTasks <- task
@@ -219,7 +219,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 			Id:       i,
 			Type:     "map",
 			FileName: file,
-			WorkerId: -1,
+			WorkerId: "-1",
 		}
 		c.TaskList[CreateTaskId(task.Type, task.Id)] = task
 		c.TodoTasks <- task
@@ -232,9 +232,9 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 		for {
 			c.lock.Lock()
 			for _, task := range c.TaskList {
-				if task.WorkerId != -1 && time.Now().After(task.DeadLine) {
+				if task.WorkerId != "-1" && time.Now().After(task.DeadLine) {
 					log.Printf("Worker: %d, executing task: %s %d error...", task.WorkerId, task.Type, task.Id)
-					task.WorkerId = -1
+					task.WorkerId = "-1"
 					c.TodoTasks <- task
 				}
 			}
@@ -248,7 +248,7 @@ func CreateTaskId(taskType string, taskId int) string {
 	return taskType + strconv.Itoa(taskId)
 }
 
-func tmpMapOutFile(workerId int, mapId int, reduceId int) string {
+func tmpMapOutFile(workerId string, mapId int, reduceId int) string {
 	return fmt.Sprintf("tmp-worker-%d-%d-%d", workerId, mapId, reduceId)
 }
 
@@ -256,7 +256,7 @@ func finalMapOutFile(mapId int, reduceId int) string {
 	return fmt.Sprintf("mr-%d-%d", mapId, reduceId)
 }
 
-func tmpReduceOutFile(workerId int, reduceId int) string {
+func tmpReduceOutFile(workerId string, reduceId int) string {
 	return fmt.Sprintf("tmp-worker-%d-out-%d", workerId, reduceId)
 }
 

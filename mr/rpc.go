@@ -36,7 +36,7 @@ type ReplyTaskArgs struct {
 }
 
 type ApplyforTaskArgs struct {
-	WorkerId     int
+	WorkerId     string
 	LastTaskId   int
 	LastTaskType string
 	Data         map[int][]byte
@@ -46,7 +46,7 @@ type Task struct {
 	Id       int    // task id
 	Type     string // map or reduce
 	FileName string
-	WorkerId int
+	WorkerId string
 	DeadLine time.Time
 }
 
