@@ -55,7 +55,7 @@ func (c *Coordinator) ApplyforTasks(args *ApplyforTaskArgs, reply *ReplyTaskArgs
 		taskId := CreateTaskId(args.LastTaskType, args.LastTaskId)
 		// if the worker is the one we specified, then it is ok
 		if task, ok := c.TaskList[taskId]; ok && task.WorkerId == args.WorkerId {
-			log.Printf("Worker: %d  has done task: %s %d ", args.WorkerId, args.LastTaskType, args.LastTaskId)
+			log.Printf("Worker: %s  has done task: %s %d ", args.WorkerId, args.LastTaskType, args.LastTaskId)
 			if args.LastTaskType == "map" {
 
 				for i := 0; i < c.nReduce; i++ {
@@ -233,7 +233,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 			c.lock.Lock()
 			for _, task := range c.TaskList {
 				if task.WorkerId != "-1" && time.Now().After(task.DeadLine) {
-					log.Printf("Worker: %d, executing task: %s %d error...", task.WorkerId, task.Type, task.Id)
+					log.Printf("Worker: %s, executing task: %s %d error...", task.WorkerId, task.Type, task.Id)
 					task.WorkerId = "-1"
 					c.TodoTasks <- task
 				}
