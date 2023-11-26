@@ -39,6 +39,7 @@ type ApplyforTaskArgs struct {
 	WorkerId     int
 	LastTaskId   int
 	LastTaskType string
+	Data         map[int][]byte
 }
 
 type Task struct {
