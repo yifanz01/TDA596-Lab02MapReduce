@@ -249,7 +249,7 @@ func CreateTaskId(taskType string, taskId int) string {
 }
 
 func tmpMapOutFile(workerId string, mapId int, reduceId int) string {
-	return fmt.Sprintf("tmp-worker-%d-%d-%d", workerId, mapId, reduceId)
+	return fmt.Sprintf("tmp-worker-%s-%d-%d", workerId, mapId, reduceId)
 }
 
 func finalMapOutFile(mapId int, reduceId int) string {
@@ -257,7 +257,7 @@ func finalMapOutFile(mapId int, reduceId int) string {
 }
 
 func tmpReduceOutFile(workerId string, reduceId int) string {
-	return fmt.Sprintf("tmp-worker-%d-out-%d", workerId, reduceId)
+	return fmt.Sprintf("tmp-worker-%s-out-%d", workerId, reduceId)
 }
 
 func finalReduceOutFile(reduceId int) string {
