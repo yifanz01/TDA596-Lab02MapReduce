@@ -1,4 +1,4 @@
-# MapReduce Algorithm Implementation
+# MapReduce
 
 MapReduce is a powerful programming model designed for processing large data sets across distributed computing environments. This repository contains an implementation of the MapReduce algorithm, providing a simplified yet robust approach to parallel data processing.
 
